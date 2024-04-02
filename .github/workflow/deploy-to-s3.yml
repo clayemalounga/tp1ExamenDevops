@@ -1,0 +1,47 @@
+name: Deployement sur S3
+on: 
+  puch:
+    branches:
+      - dev # uniquement sur la branche dev
+
+jobs:
+  deployement:
+    runs-on: ubuntu-latest
+    uses: actions/checkout@v4
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4  
+
+    #--> ATTENTION : NE TOUCHEZ PAS A CE STEP
+    - name: Insert commit ID into HTML
+      run: |
+        sed -i "s/data-commit-id=\".*\"/data-commit-id=\"${{ github.sha }}\"/g" index.html
+        # Vérifier que le remplacement a été effectué correctement
+        grep -q "data-commit-id=\"${{ github.sha }}\"" contact.html && echo "ID du commit inséré avec succès." || { echo "Erreur : ID du commit non inséré."; exit 1; }
+      env:
+        AWS_BUCKET_NAME: ${{ secrets.AWS_BUCKET_NAME }}
+
+    - name: Install AWS CLI 2
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y python3-pip
+        sudo pip3 install awscli
+
+    - name: Configuration de AWS credentials 3
+      run: |
+        aws configure set aws_access_key_id ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws configure set aws_secret_access_key ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws configure set region eu-west-3 
+
+    - name: Check if bucket exists 
+      run: |
+        if aws s3api head-bucket --bucket $AWS_BUCKET_NAME; then
+          echo "Bucket exists."
+        else
+          echo "Bucket does not exist. Stopping the pipeline."
+          exit 1
+        fi
+      env:
+        AWS_BUCKET_NAME: ${{ secrets.AWS_BUCKET_NAME }}
+
+
