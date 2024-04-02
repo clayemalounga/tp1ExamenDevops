@@ -1,6 +1,6 @@
 name: Deployement sur S3
 on: 
-  puch:
+  push:
     branches:
       - dev # uniquement sur la branche dev
 
